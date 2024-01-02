@@ -1,22 +1,14 @@
-import React, { ChangeEvent, FormEvent, useEffect, useState } from "react"
-import { getCookie } from "../global/cokies";
+import React, { ChangeEvent, FormEvent, useContext, useEffect, useState } from "react"
+import { useCookie } from "./Home";
 
-// type bookType = {
-//     author:string
-//     bid:string
-//     doc:string
-//     dop?:string
-//     id:string
-//     price:number
-//     publisher?:string
-//     title:string
-//     type:string
-// } | null
+type booksType = {
+    getBooks:() => void
+}
 
-export default function AddBook(){
-
-    const myCookie = getCookie();
+const AddBook: React.FC<booksType> = ({getBooks}) => {
+    const myCookie = useContext(useCookie);
     const [imageFile, setImageFile] = useState<File | null>();
+    const [allTypes , setAllTypes] = useState<string[]>();
     const [bookInfoS, setBookInfoS] = useState({
         title : "",
         author: "",
@@ -28,14 +20,20 @@ export default function AddBook(){
         imageUrl: ""
     });
 
+
     function handleChange(event:ChangeEvent<HTMLInputElement>){
         const target = event.target as HTMLInputElement;
         const {name , value} = target;
         setBookInfoS({...bookInfoS, [name]: value});
     }
 
+    function handleSelect(event:ChangeEvent<HTMLSelectElement>){
+        const target = event.target.value;
+        setBookInfoS({...bookInfoS,type: target});
+    }
+
+
     const handleFileSubmit = async () => {
-        // const extensionName = imageFile?.type;
         console.log("img in bookinfo",bookInfoS.imageUrl)
         const formData = new FormData();
         formData.append('file', imageFile!);
@@ -43,13 +41,14 @@ export default function AddBook(){
         const response = await fetch(`${import.meta.env.VITE_API_URL}BookInfoModels/uploadImage`,{
             method:'POST',
             headers:{
-                "tokenId": myCookie
+                "tokenId": myCookie!
             },
             body: formData
         })
         const data = response.json();
         console.log("fileupload res" , response,data);
     }
+
 
     async function handleSubmit(event:FormEvent){
         console.log("imageUrl",bookInfoS.imageUrl);
@@ -59,7 +58,7 @@ export default function AddBook(){
         const response = await fetch(`${import.meta.env.VITE_API_URL}BookInfoModels`,{
             method: "POST",
             headers:{
-                "tokenId": myCookie,
+                "tokenId": myCookie!,
                 'Content-Type': 'application/json'
             },
             body: JSON.stringify(bookInfoS),
@@ -68,31 +67,44 @@ export default function AddBook(){
             alert("could'nt add book please retry");
             return;
         }
-        alert("Added 1 Book");
-        const data = await response.json();
-        console.log("from addbook" , data , response);
-        location.reload();
+        // alert("Added 1 Book");
+        // const data = await response.json();
+        // console.log("from addbook" , data , response);
+        getBooks();
     }
 
 
     const onFileChange = async (e:React.ChangeEvent<HTMLInputElement>) => {
         if(!e.target.files) return;
-        
         setImageFile(e.target.files[0])
+    }
 
-        // await setBookInfoS({...bookInfoS, imageUrl: imageFile?.name!})
-        
-
+    const getTypes = async() => {
+        const response = await fetch(`${import.meta.env.VITE_API_URL}BookInfoModels/types`,{
+            method:"GET",
+            headers: {
+                "tokenId" : myCookie!
+            }
+        })
+        if(!response.ok){
+            console.log("failed to gettypes");
+            return;
+        }
+        const data = await response.json();
+        setAllTypes(data);
+        console.log("gettyeps", response,data);
     }
 
     useEffect(() => {
+        getTypes();
         setBookInfoS({...bookInfoS, imageUrl: imageFile?.name!})
+        console.log("addbook");
     },[imageFile])
 
     return(
         <div className="w-2/5 h-full">
             <div className="w-full h-14">
-                <h3 className="font-bold text-2xl text-gray-200 text-center">Add a Book</h3>
+                <h3 className="font-bold text-2xl text-gray-200 text-center mt-5">Add a Book</h3>
             </div>
             <form onSubmit={handleSubmit} id="addForm">
                 <div className="w-full flex flex-row px-5 m-4 items-center justify-center">
@@ -113,11 +125,23 @@ export default function AddBook(){
                     </div>
                     <input className="p-1 h-10 border-2 border-white bg-transparent rounded-r-full" type="number" placeholder="" name="price" value={bookInfoS.price.toString()} onChange={handleChange} />
                 </div>
-                <div className="w-full flex flex-row px-5 m-4 items-center justify-center">
+                {/* <div className="w-full flex flex-row px-5 m-4 items-center justify-center">
                     <div className="w-1/4 p-1 bg-white rounded-l-full">
                         <p className="text-black text-right m-1 ">Type</p>
                     </div>
                     <input className="p-1 h-10 border-2 border-white bg-transparent rounded-r-full" type="text" placeholder="" name="type" value={bookInfoS.type} onChange={handleChange} />
+                </div> */}
+                <div className="w-full flex flex-row px-5 m-4 items-center justify-center">
+                    <div className="w-1/4 p-1 bg-white rounded-l-full">
+                        <p className="text-black text-right m-1 ">Type</p>
+                    </div>
+                    <select name="type" className="p-1 h-10 w-48 border-2 border-white bg-transparent rounded-r-full" onChange={handleSelect}>
+                        {allTypes?.map((sType) => {
+                            return(
+                                <option value={sType} className="text-black">{sType.toUpperCase()}</option>
+                            )
+                        })}
+                    </select>
                 </div>
                 <div className="w-full flex flex-row px-5 m-4 items-center justify-center">
                     <div className="w-1/4 p-1 bg-white rounded-l-full">
@@ -144,3 +168,5 @@ export default function AddBook(){
         </div>
     )
 }
+
+export default AddBook;

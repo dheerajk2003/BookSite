@@ -1,9 +1,16 @@
-import { useEffect, useState } from "react"
+import { Dispatch, SetStateAction, useContext, useEffect, useState } from "react"
 import { getCookie, setCookie } from "../global/cokies"
 import { Link, useNavigate } from "react-router-dom";
+import { useCookie } from "./Home";
 
-export default function Login() {
+type typeLogin = {
+    setCk:Dispatch<SetStateAction<string>>
+}
+
+const Login :React.FC<typeLogin> = ({setCk}) => {
     const navigate = useNavigate();
+    const myCookie = useContext(useCookie);
+    
     async function UserLogin() {
         try {
             const response = await fetch(`${import.meta.env.VITE_API_URL}RegistrationModels/Login`, {
@@ -23,12 +30,10 @@ export default function Login() {
             }
 
             const userData: string = await response.json();
-            alert("Logged in succesfully");
             if (userData) {
                 setCookie(userData);
+                setCk(getCookie());
             }
-            // location.reload();
-            location.reload();
         }
         catch (error) {
             console.log("error" + error);
@@ -36,14 +41,12 @@ export default function Login() {
         }
     }
 
+    if(myCookie){
+        navigate("/")
+    }
+
     useEffect(() => {
-        const myCookie = getCookie();
-        if(!myCookie || myCookie == undefined || myCookie == ""){
-            
-        }
-        else{
-            navigate("/");
-        }
+        console.log("Login", myCookie);
     },[])
 
     const [username, setUsername] = useState<string>("");
@@ -52,7 +55,6 @@ export default function Login() {
         <section className="flex justify-center items-center h-screen w-screen bg-gradient-to-b from-10% from-black via-neutral-500 via-70% to-gray-200">
             <div className="max-w-md w-full bg-transparent rounded p-6 space-y-4">
                 <div className="mb-4 w-32 h-32 rounded-full flex flex-col justify-end items-center bg-gradient-to-b from-yellow-500 via-orange-600 mx-auto">
-                    {/* <p className="text-gray-400">Sign In</p> */}
                     <h2 className="text-3xl font-bold text-white">Sign In</h2>
                 </div>
                 <div>
@@ -73,3 +75,5 @@ export default function Login() {
         </section>
     )
 }
+
+export default Login;
